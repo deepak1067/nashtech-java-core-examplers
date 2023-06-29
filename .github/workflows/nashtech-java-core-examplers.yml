@@ -9,6 +9,9 @@
 name: nashtech-java-core-examplers
 
 on:
+  push:
+      branches:
+        - develop
   repository_dispatch:
     types:
       - trigger-from-nashtech-java-core
@@ -42,3 +45,57 @@ jobs:
         path: |
           target/*.jar
           !target/findsecbugs-plugin*.jar
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: 'latest'
+          service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          project_id: my-kubernetes-project-389604
+
+      - name: Configure Docker and Kubernetes
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud container clusters get-credentials deployment-cluster-sdk	 --zone asia-southeast1-a --project my-kubernetes-project-389604
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t gcr.io/my-kubernetes-project-389604/reactive-docker-image:${{ github.sha }} .
+          docker push gcr.io/my-kubernetes-project-389604/reactive-docker-image:${{ github.sha }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f - <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: reactive-deployment
+            labels:
+              app: reactive
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: reactive
+            template:
+              metadata:
+                labels:
+                  app: reactive
+              spec:
+                containers:
+                  - name: reactive-container
+                    image: gcr.io/my-kubernetes-project-389604/reactive-docker-image:${{ github.sha }}
+                    ports:
+                      - containerPort: 8088
+          EOF
+
+      # Optional: Run additional tests or tasks after deployment
+#      - name: Run additional tests
+#        run: |
+#          # Add your additional tests or tasks here
