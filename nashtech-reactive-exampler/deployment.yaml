@@ -1,0 +1,20 @@
+#apiVersion: apps/v1
+#kind: Deployment # Kubernetes' resource kind we are creating
+#metadata:
+#  name: nashtech-reactive-exampler
+#spec:
+#  selector:
+#    matchLabels:
+#      app: nashtech-reactive-exampler
+#  replicas: 2 # Number of replicas that will be created for this deployment
+#  template:
+#    metadata:
+#      labels:
+#        app: nashtech-reactive-exampler
+#    spec:
+#      containers:
+#        - name: nashtech-reactive-exampler
+#          image: springboot-k8s-example:1.0 # Image that will be used to containers in the cluster
+#          imagePullPolicy: IfNotPresent
+#          ports:
+#            - containerPort: 8080 # The port that the container is running on in the cluster
